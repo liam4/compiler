@@ -1,0 +1,8 @@
+{
+  "name": "cornflakes",
+  "private": true,
+  "main": "src/cornflakes.js",
+  "dependencies": {
+    "nearley-make": "^1.0.0"
+  }
+}
