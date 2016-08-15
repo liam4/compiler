@@ -19,14 +19,13 @@ const builtins = require('./builtins')
 @builtin "string.ne"
 @builtin "whitespace.ne"
 
-main    -> _ program:* _    {% d => removeNull(d[1]||[]).map(k => k[0]) %}
-program -> comment
-         | string
-         | num
-         | variable
+main    -> _ program:* _    {% d => (d[1]||[]) %}
+program -> comment          {% d => d[0] %}
+         | string           {% d => d[0] %}
+         | num              {% d => d[0] %}
+         | variable         {% d => d[0] %}
          | "{" main "}" argsDefinition:? {% d => {
            let body = d[1]
-           console.log('Func body is', d[1])
 
            if(!d[3]) d[3] = [0, null]
 

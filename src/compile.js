@@ -1,5 +1,5 @@
 const fs = require('fs')
-const builtins = require('./builtins')
+const b = require('./builtins')
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -12,7 +12,9 @@ module.exports = function compile(tree) {
 
   let globalCtx = {
     p: null,
-    //o: new CFFunction(),
+    o: new b.CFFunction(function output(str) {
+      process.stdout.write(str)
+    }, 1, null),
   }
 
   let ctx = globalCtx

@@ -53,14 +53,14 @@ builtins.CFFunction = class CFFunction {
 
   setBodyAndArgs(body, argsamount, argnames) {
     argsamount = (argsamount || Object.keys(argnames || {}).length) || 1
-    if(!(body instanceof Array))
-      throw new TypeError('builtins.CFFunction.setBodyAndArgs: arg 0 (body) must be Array, was', body)
+    if(!(body instanceof Array || body instanceof Function))
+      throw new TypeError('builtins.CFFunction.setBodyAndArgs: arg 0 (body) must be Array or Function, was', body)
     if(typeof argsamount != 'number')
       throw new TypeError('builtins.CFFunction.setBodyAndArgs: arg 1 (argsamount) must be number, was', argsamount)
     if(!(argnames instanceof Array) && argnames !== null)
       throw new TypeError('builtins.CFFunction.setBodyAndArgs: arg 2 (argnames) must be Array or null, was', argnames)
 
-    this.body = body
+    this.b = body
     this.argsamount = argsamount
     this.argnames = argnames
   }
