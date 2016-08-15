@@ -49,7 +49,7 @@ function compile(indent, res, fn, G) {
   // define ctx
   let GWithoutParent = {} // ?
   Object.assign(GWithoutParent, G, { parent: null })
-  res += indent + `var G = {"parent":null,"variables":new Object(),"stack":new Array()}\n`
+  res += indent + `var G = {"parent":null,"variables":new Object(),"stack":new Array()};\n`
   // push() to ctx.stack
   res += indent + `var + = function(v) { G.stack.push(v); }\n`
   // pop() from ctx.stack
