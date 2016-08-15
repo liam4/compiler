@@ -60,7 +60,7 @@ builtins.CFFunction = class CFFunction {
     if(!(argnames instanceof Array) && argnames !== null)
       throw new TypeError('builtins.CFFunction.setBodyAndArgs: arg 2 (argnames) must be Array or null, was', argnames)
 
-    this.b = body
+    this.body = body
     this.argsamount = argsamount
     this.argnames = argnames
   }
