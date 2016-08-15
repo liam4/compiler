@@ -37,24 +37,24 @@ function find(what, ctx) {
 // moar recursion? whaaaaaaaaat?
 function compile(indent, res, fn, G) {
   //let id = require('uniqid')('_')
-  
+
   let path = []
   let origin = G, originString = 'G'
-  
+
   function dfnVar(name, path) {
     evalPath(path).variables[name] = "EXISTS OMG"
     res += indent + `${parsePath(['G', ...path, 'variables', name])} = undefined;\n`
   }
-  
+
   // define ctx
   let GWithoutParent = {} // ?
   Object.assign(GWithoutParent, G, { parent: null })
-  res += indent + `var G = {"parent":null,"variables":new Object(),"stack":new Array()}`
+  res += indent + `var G = {"parent":null,"variables":new Object(),"stack":new Array()}\n`
   // push() to ctx.stack
   res += indent + `var + = function(v) { G.stack.push(v); }\n`
   // pop() from ctx.stack
   res += indent + `var - = function(v) { G.stack.pop(v); }\n`
-  
+
   ////////////////////////////////////////////////////////////////////////
 
   res += /* indent + */ `\n`
@@ -93,14 +93,14 @@ function find(what, origin, path) {
 
 function parsePath(path) {
   path = path || []
-  
+
   let res = path[0]
   path.slice(1).forEach(v => res += '[' + JSON.stringify(v) + ']')
   return res
 }
 function evalPath(origin, path) {
   path = path || []
-  
+
   let res = origin
   path.forEach(v => {
     res = res[v]
