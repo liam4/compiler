@@ -3,7 +3,6 @@
   "private": true,
   "main": "src/cornflakes.js",
   "dependencies": {
-    "nearley-make": "^1.0.0",
-    "uniqid": "^4.0.0"
+    "nearley-make": "^1.0.0"
   }
 }

@@ -20,24 +20,19 @@ module.exports = function(tree) {
     stack: []
   }
 
-  return compile('', '', tree, ctx)
+  let res = ''
+
+  // define ctx (G)
+  res += `var G = ${JSON.stringify(ctx)};\n`
+  // push() to ctx.stack
+  res += `var + = function(v) { G.stack.push(v); }\n`
+  // pop() from ctx.stack
+  res += `var - = function(v) { G.stack.pop(v); }\n`
+
+  return compile(res, '', tree, ctx)
 }
 
-/*
-// recursion? whaaaat?
-function find(what, ctx) {
-  let inCtx = ctx.variables[what]
-
-  if(inCtx) return inCtx
-  else if(ctx.parent === null) return null
-  else return find(what, ctx.parent)
-}
-*/
-
-// moar recursion? whaaaaaaaaat?
 function compile(indent, res, fn, G) {
-  //let id = require('uniqid')('_')
-
   let path = []
   let origin = G, originString = 'G'
 
@@ -46,31 +41,38 @@ function compile(indent, res, fn, G) {
     res += indent + `${parsePath(['G', ...path, 'variables', name])} = undefined;\n`
   }
 
-  // define ctx
-  let GWithoutParent = {} // ?
-  Object.assign(GWithoutParent, G, { parent: null })
-  res += indent + `var G = {"parent":null,"variables":new Object(),"stack":new Array()};\n`
-  // push() to ctx.stack
-  res += indent + `var + = function(v) { G.stack.push(v); }\n`
-  // pop() from ctx.stack
-  res += indent + `var - = function(v) { G.stack.pop(v); }\n`
-
   ////////////////////////////////////////////////////////////////////////
-
-  res += /* indent + */ `\n`
 
   fn.body.forEach(([type, v]) => {
     if(type === b.NAMES.STRING) {
+      res += indent
       v.value.forEach(char => {
-        res += indent + `+(${JSON.stringify(char.value)});`
+        res += `+(${JSON.stringify(char.value)}); `
       })
 
-      res += indent + `\n`
+      res += `// "${v.stringValue}"\n`
     }
 
     if(type === b.NAMES.VARIABLE) {
       let where = find(v.name, origin, path)
-      console.log(`Found ${v.name}: ${where}`)
+
+      if(where === null) {
+        throw 'Variable ' + v.name + ' is undefined'
+      } else {
+
+      }
+    }
+
+    if(type === b.NAMES.FUNCTION) {
+      res += indent + '+(function() {\n'
+      res += compile(indent + '  ', res, v, {
+        parent: G,
+        variables: {
+          // TODO
+        },
+        stack: []
+      })
+      res += '});\n'
     }
   })
 
@@ -83,11 +85,12 @@ function compile(indent, res, fn, G) {
 
 function find(what, origin, path) {
   let evaledPath = evalPath(origin, path)
-  console.log('evaledPath:', evaledPath)
+
+  if(evaledPath.parent == null)
+    return null
   if(Object.keys(evaledPath.variables).indexOf(what) > -1)
     return [...path, 'variables', what]
-  if(evaledPath.parent == null)
-    return []
+
   return find(what, path.slice(0, path.length - 2))
 }
 
@@ -96,8 +99,10 @@ function parsePath(path) {
 
   let res = path[0]
   path.slice(1).forEach(v => res += '[' + JSON.stringify(v) + ']')
+
   return res
 }
+
 function evalPath(origin, path) {
   path = path || []
 
@@ -105,5 +110,6 @@ function evalPath(origin, path) {
   path.forEach(v => {
     res = res[v]
   })
+
   return res
 }

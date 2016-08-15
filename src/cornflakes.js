@@ -11,7 +11,7 @@ const rl = readline.createInterface({
 })
 
 rl.on('line', line => {
-  let code = compile(parse(line))
+  let code = `/* compiled from \`${line}\` */\n\n` + compile(parse(line))
   fs.writeFileSync('out.js', code, 'utf8')
 
   process.exit()
