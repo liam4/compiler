@@ -4,6 +4,8 @@
   "main": "src/cornflakes.js",
   "dependencies": {
     "nearley-make": "^1.0.0",
+    "prompt-sync": "^4.1.4",
+    "rotate-array": "^1.1.0",
     "serialize-javascript": "^1.3.0",
     "uglify-js": "^2.7.1"
   }

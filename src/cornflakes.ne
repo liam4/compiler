@@ -40,9 +40,12 @@ argsDefinition -> varchar:+ {% d => [d[0].length, d[0]] %}
 string   -> dqstring        {% d => [builtins.NAMES.STRING, new builtins.CFString(d[0].split('').map(char => new builtins.CFNumber(char.charCodeAt(0).toString('16'))))] %}
 
 variable -> varchar         {% d => [builtins.NAMES.VARIABLE, new builtins.CFVariable(d[0][0])] %}
-varchar  -> [a-z]
+varchar  -> . # TODO: cannot be any of ""{}|
 
-num      -> longnum           {% d => [builtins.NAMES.NUMBER, new builtins.CFNumber(d[0])] %}
+num      -> longnum           {% (d, r) => {
+  if(isNaN(parseInt(d[0], 16))) r
+  else return [builtins.NAMES.NUMBER, new builtins.CFNumber(d[0])]
+} %}
           | shortnum          {% d => [builtins.NAMES.NUMBER, new builtins.CFNumber(d[0].join(''))] %}
 longnum  -> [^A-Z0-9#."] [A-Z0-9]
 shortnum -> "#" [A-Z0-9]:+ {% d => d[1] %}

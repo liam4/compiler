@@ -34,9 +34,18 @@ module.exports = function(main) {
 
 F.prototype.push = function(k) { this.g.stack.push(k); };
 F.prototype.pop = function(k) { this.g.stack.pop(k); };
+
+function call(fn, args, stack) {
+  var res = (stack === true ? fn : fn.call).apply(null, args);
+  var rep = stack === true ? args : stack;
+  
+  res.forEach(function(r) {
+    rep.push(r);
+  });
+}
 `
 
-  res += `\n(new F(undefined, [], function() {\n  this.g.variables = ${serialize(builtins)};\n`
+  res += `\nnew F(undefined, [], function() {\n  this.g.variables = ${serialize(builtins)};\n  G = this;\n`
   res = compile('  ', res, {
     body: [
       [
@@ -45,14 +54,14 @@ F.prototype.pop = function(k) { this.g.stack.pop(k); };
       ]
     ]
   }, ctx, [])
-  res += '}));'
+  res += `}).call();`
 
   return res
 }
 
 function compile(indent, res, fn, G, path) {
   let origin = G
-  
+
   function dfnVar(name, path) {
     evalPath(path).variables[name] = true
     res += indent + `${parsePath(['this.g', ...path, 'variables', name])} = undefined;\n`
@@ -62,12 +71,9 @@ function compile(indent, res, fn, G, path) {
 
   fn.body.forEach(([type, v]) => {
     if(type === b.NAMES.STRING) {
-      res += indent
-      v.value.forEach(char => {
-        res += `this.push(${serialize(char.value)}); `
-      })
-
-      res += `// "${v.stringValue}"\n`
+      res += indent + 'this.push(['
+      res += v.value.map(char => serialize(char.value)).join(', ')
+      res += ']);\n'
     }
 
     if(type === b.NAMES.VARIABLE) {
@@ -77,19 +83,28 @@ function compile(indent, res, fn, G, path) {
         throw 'Variable ' + v.name + ' is undefined'
       } else {
         let realPath = (new Array(where.recursions).fill('parentObj')).concat(where.path)
-        let pops = 'pop(),'.repeat(evalPath(G, realPath).length)
+        let fn = evalPath(G, realPath)
+
+        let pops = 'pop(),'.repeat(fn.length)
         pops = '[' + pops.slice(0, pops.length - 1) + ']'
-        res += indent + `${ parsePath(['this.g', ...realPath]) }(${pops});\n`
+
+        if(builtins.includes(fn) && fn.length === 0) {
+          // it's a builtin that takes the entire stack :O
+          res += indent + `call(${ parsePath(['this.g', ...realPath]) }, this.g.stack, true);\n`
+        } else {
+          res += indent + `call(${ parsePath(['this.g', ...realPath]) }, ${pops}, this.g.stack);\n`
+        }
       }
     }
 
     if(type === b.NAMES.FUNCTION) {
-      res += indent + 'this.+(new F(' + parsePath(['this.g', ...path]) + ', ' + JSON.stringify(path) + ', function() {\n'
+      res += indent + 'this.push(new F(' + parsePath(['this.g', ...path]) + ', ' + JSON.stringify(path) + ', function() {\n'
       res = compile(indent + '  ', res, v, {
         parentPath: [...path], parentObj: G,
         variables: {},
         stack: []
       }, [], G)
+      res += indent + `  call(G.o, [this.pop()], this.g.stack);\n`
       res += indent + '}));\n'
     }
   })
@@ -103,14 +118,14 @@ function compile(indent, res, fn, G, path) {
 
 function find(what, origin, path, recursions) {
   // console.log('Checking path ', path, ' from origin ', origin, ' for variable ', what, '.')
-    
+
   let evaledPath = evalPath(origin, path)
-  
+
   if(Object.keys(evaledPath.variables).indexOf(what) > -1)
     return { path: [...path, 'variables', what], recursions }
   if(!evaledPath.parentObj)
     return { path: null, recursions }
-  
+
   return find(what, evaledPath.parentObj, evaledPath.parentPath, (recursions || 0) + 1)
 }
 
