@@ -7,8 +7,8 @@ Object.values = obj => Object.keys(obj).map(k => obj[k])
 
 //////////////////////////////////////////////////////////////////////////
 
-module.exports = function(tree) {
-  console.dir(tree, { depth: null })
+module.exports = function(main) {
+  console.dir(main, { depth: null })
   console.log() // wat
 
   // global context
@@ -22,14 +22,38 @@ module.exports = function(tree) {
 
   let res = ''
 
+  res += `var F = function(p, fn) {
+  this.g = {
+    parent: p,
+    variables: {},
+    stack: []
+  };
+
+  this.call = fn;
+};
+
+F.prototype.+ = function(k) { this.g.stack.push(k); };
+F.prototype.- = function(k) { this.g.stack.pop(k); };
+
+`
+
+  /*
   // define ctx (G)
   res += `var G = ${JSON.stringify(ctx)};\n`
   // push() to ctx.stack
   res += `var + = function(v) { G.stack.push(v); }\n`
   // pop() from ctx.stack
   res += `var - = function(v) { G.stack.pop(v); }\n`
+  */
 
-  return compile('', res, tree, ctx)
+  return compile('', res, {
+    body: [
+      [
+        b.NAMES.FUNCTION,
+        main
+      ]
+    ]
+  }, ctx)
 }
 
 function compile(indent, res, fn, G) {
@@ -47,7 +71,7 @@ function compile(indent, res, fn, G) {
     if(type === b.NAMES.STRING) {
       res += indent
       v.value.forEach(char => {
-        res += `+(${JSON.stringify(char.value)}); `
+        res += `this.+(${JSON.stringify(char.value)}); `
       })
 
       res += `// "${v.stringValue}"\n`
@@ -64,7 +88,7 @@ function compile(indent, res, fn, G) {
     }
 
     if(type === b.NAMES.FUNCTION) {
-      res += indent + '+(function() {\n'
+      res += indent + 'this.+(new F(function() {\n'
       res = compile(indent + '  ', res, v, {
         parent: G,
         variables: {
@@ -72,7 +96,7 @@ function compile(indent, res, fn, G) {
         },
         stack: []
       })
-      res += '});\n'
+      res += '}));\n'
     }
   })
 
