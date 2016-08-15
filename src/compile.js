@@ -8,7 +8,7 @@ module.exports = function compile(tree) {
 
   ////////////////////////////////////////////////////////////////////////
 
-  console.dir(tree, { depth:null })
+  console.dir(tree, { depth: null })
 
   /*
   tree.forEach(line => {

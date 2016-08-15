@@ -7,7 +7,7 @@ const path = require('path')
 const grammar = fs.readFileSync(
   path.join(__dirname, '/', 'cornflakes.ne'),
   'utf-8')
-const parser = make(grammar)
+const parser = make(grammar, { require })
 
 module.exports = function parse(string) {
   const asts = parser.feed(string).results
@@ -16,6 +16,6 @@ module.exports = function parse(string) {
     console.warn('Ambiguous grammar:')
     console.dir(asts, { depth: null })
   }
-
+  
   return asts[0]
 }
