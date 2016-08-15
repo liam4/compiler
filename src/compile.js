@@ -76,10 +76,10 @@ function compile(indent, res, fn, G, path) {
       if(where === null) {
         throw 'Variable ' + v.name + ' is undefined'
       } else {
-        console.log('FOUND VARIABLE:', where.path, G)
-        var pops = 'pop(),'.repeat(evalPath(G, (new Array(where.recursions).fill('parentObj')).concat(where.path)).length)
+        let realPath = (new Array(where.recursions).fill('parentObj')).concat(where.path)
+        let pops = 'pop(),'.repeat(evalPath(G, realPath).length)
         pops = '[' + pops.slice(0, pops.length - 1) + ']'
-        res += indent + `${ parsePath(['this.g', ...(where.path)]) }(${pops});\n`
+        res += indent + `${ parsePath(['this.g', ...realPath]) }(${pops});\n`
       }
     }
 
