@@ -29,7 +29,7 @@ module.exports = function(tree) {
   // pop() from ctx.stack
   res += `var - = function(v) { G.stack.pop(v); }\n`
 
-  return compile(res, '', tree, ctx)
+  return compile('', res, tree, ctx)
 }
 
 function compile(indent, res, fn, G) {
@@ -65,7 +65,7 @@ function compile(indent, res, fn, G) {
 
     if(type === b.NAMES.FUNCTION) {
       res += indent + '+(function() {\n'
-      res += compile(indent + '  ', res, v, {
+      res = compile(indent + '  ', res, v, {
         parent: G,
         variables: {
           // TODO
