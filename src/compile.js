@@ -1,7 +1,10 @@
 const fs = require('fs')
-const b = require('./grammarbuiltins')
+const serialize = require('serialize-javascript')
 
 //////////////////////////////////////////////////////////////////////////
+
+const builtins = require('./builtins')
+const b = require('./grammarbuiltins')
 
 Object.values = obj => Object.keys(obj).map(k => obj[k])
 
@@ -9,14 +12,11 @@ Object.values = obj => Object.keys(obj).map(k => obj[k])
 
 module.exports = function(main) {
   console.dir(main, { depth: null })
-  console.log() // wat
 
   // global context
   let ctx = {
-    parent: null,
-    variables: {
-      // TODO
-    },
+    parent: [],
+    variables: builtins,
     stack: []
   }
 
@@ -32,20 +32,11 @@ module.exports = function(main) {
   this.call = fn;
 };
 
-F.prototype.+ = function(k) { this.g.stack.push(k); };
-F.prototype.- = function(k) { this.g.stack.pop(k); };
+F.prototype.push = function(k) { this.g.stack.push(k); };
+F.prototype.pop = function(k) { this.g.stack.pop(k); };
 `
 
-  /*
-  // define ctx (G)
-  res += `var G = ${JSON.stringify(ctx)};\n`
-  // push() to ctx.stack
-  res += `var + = function(v) { G.stack.push(v); }\n`
-  // pop() from ctx.stack
-  res += `var - = function(v) { G.stack.pop(v); }\n`
-  */
-  
-  res += '\n(new F({}, function() {\n'
+  res += `\n(new F({}, function() {\n  this.g.variables = ${serialize(builtins)};\n`
   res = compile('  ', res, {
     body: [
       [
@@ -55,12 +46,12 @@ F.prototype.- = function(k) { this.g.stack.pop(k); };
     ]
   }, ctx, [])
   res += '}));'
-  
+
   return res
 }
 
 function compile(indent, res, fn, G, path) {
-  let origin = G, originString = 'G'
+  let origin = G, originString = 'this.g'
 
   function dfnVar(name, path) {
     evalPath(path).variables[name] = "EXISTS OMG"
@@ -73,7 +64,7 @@ function compile(indent, res, fn, G, path) {
     if(type === b.NAMES.STRING) {
       res += indent
       v.value.forEach(char => {
-        res += `this.+(${JSON.stringify(char.value)}); `
+        res += `this.push(${serialize(char.value)}); `
       })
 
       res += `// "${v.stringValue}"\n`
@@ -85,7 +76,7 @@ function compile(indent, res, fn, G, path) {
       if(where === null) {
         throw 'Variable ' + v.name + ' is undefined'
       } else {
-
+        console.log(where)
       }
     }
 
@@ -93,9 +84,7 @@ function compile(indent, res, fn, G, path) {
       res += indent + 'this.+(new F(' + parsePath([originString, ...path]) + ', function() {\n'
       res = compile(indent + '  ', res, v, {
         parent: G,
-        variables: {
-          // TODO
-        },
+        variables: {},
         stack: []
       }, path)
       res += indent + '}));\n'
@@ -111,26 +100,29 @@ function compile(indent, res, fn, G, path) {
 
 function find(what, origin, path) {
   let evaledPath = evalPath(origin, path)
+  console.log(path)
 
-  if(evaledPath.parent == null)
+  if(!evaledPath.parent)
     return null
   if(Object.keys(evaledPath.variables).indexOf(what) > -1)
     return [...path, 'variables', what]
 
-  return find(what, path.slice(0, path.length - 2))
+  return find(what, evaledPath.parent)
 }
 
 function parsePath(path) {
   path = path || []
 
   let res = path[0]
-  path.slice(1).forEach(v => res += '[' + JSON.stringify(v) + ']')
+  path.slice(1).forEach(v => res += '[' + serialize(v) + ']')
 
   return res
 }
 
 function evalPath(origin, path) {
   path = path || []
+
+  console.log('origin:', origin)
 
   let res = origin
   path.forEach(v => {

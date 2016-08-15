@@ -38,3 +38,4 @@ jspm_packages
 
 # output
 out.js
+out.min.js

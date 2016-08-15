@@ -24,19 +24,18 @@ program -> comment          {% d => d[0] %}
          | string           {% d => d[0] %}
          | num              {% d => d[0] %}
          | variable         {% d => d[0] %}
-         | "{" main "}" argsDefinition:? {% d => {
+         | "{" main "}" (argsDefinition "|"):? {% d => {
            let body = d[1].body
 
-           if(!d[3]) d[3] = [0, null]
+           if(!d[3]) d[3] = [[0, null], '|']
 
-           let args = d[3][0]
-           let argnames = d[3][1]
+           let args = d[3][0][0]
+           let argnames = d[3][0][1]
 
            return [builtins.NAMES.FUNCTION, new builtins.CFFunction(body, args, argnames)]
          } %}
 
-argsDefinition -> num               {% d => [num, null] %}
-                | "(" varchar:+ ")" {% d => [d[1].length, d[1]] %}
+argsDefinition -> varchar:+ {% d => [d[0].length, d[0]] %}
 
 string   -> dqstring        {% d => [builtins.NAMES.STRING, new builtins.CFString(d[0].split('').map(char => new builtins.CFNumber(char.charCodeAt(0).toString('16'))))] %}
 

@@ -3,6 +3,8 @@
   "private": true,
   "main": "src/cornflakes.js",
   "dependencies": {
-    "nearley-make": "^1.0.0"
+    "nearley-make": "^1.0.0",
+    "serialize-javascript": "^1.3.0",
+    "uglify-js": "^2.7.1"
   }
 }
