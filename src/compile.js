@@ -34,7 +34,6 @@ module.exports = function(main) {
 
 F.prototype.+ = function(k) { this.g.stack.push(k); };
 F.prototype.- = function(k) { this.g.stack.pop(k); };
-
 `
 
   /*
@@ -45,19 +44,22 @@ F.prototype.- = function(k) { this.g.stack.pop(k); };
   // pop() from ctx.stack
   res += `var - = function(v) { G.stack.pop(v); }\n`
   */
-
-  return compile('', res, {
+  
+  res += '\n(new F({}, function() {\n'
+  res = compile('  ', res, {
     body: [
       [
         b.NAMES.FUNCTION,
         main
       ]
     ]
-  }, ctx)
+  }, ctx, [])
+  res += '}));'
+  
+  return res
 }
 
-function compile(indent, res, fn, G) {
-  let path = []
+function compile(indent, res, fn, G, path) {
   let origin = G, originString = 'G'
 
   function dfnVar(name, path) {
@@ -88,15 +90,15 @@ function compile(indent, res, fn, G) {
     }
 
     if(type === b.NAMES.FUNCTION) {
-      res += indent + 'this.+(new F(function() {\n'
+      res += indent + 'this.+(new F(' + parsePath([originString, ...path]) + ', function() {\n'
       res = compile(indent + '  ', res, v, {
         parent: G,
         variables: {
           // TODO
         },
         stack: []
-      })
-      res += '}));\n'
+      }, path)
+      res += indent + '}));\n'
     }
   })
 
