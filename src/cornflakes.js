@@ -13,11 +13,12 @@ const rl = readline.createInterface({
 
 rl.on('line', line => {
   let code = `/* compiled from \`${line}\` */\n\n` + compile(parse(line))
+  fs.writeFileSync('out.js', code, 'utf8')
+  
   let uglified = uglify(code, {
     fromString: true
   })
 
-  fs.writeFileSync('out.js', code, 'utf8')
   fs.writeFileSync('out.min.js', uglified.code, 'utf8')
 
   process.exit()

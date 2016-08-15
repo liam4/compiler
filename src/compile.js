@@ -15,16 +15,16 @@ module.exports = function(main) {
 
   // global context
   let ctx = {
-    parent: [],
+    parentObj: undefined, parentPath: [],
     variables: builtins,
     stack: []
   }
 
   let res = ''
 
-  res += `var F = function(p, fn) {
+  res += `var F = function(p, ppath, fn) {
   this.g = {
-    parent: p,
+    parentPath: ppath, parentObj: p,
     variables: {},
     stack: []
   };
@@ -36,7 +36,7 @@ F.prototype.push = function(k) { this.g.stack.push(k); };
 F.prototype.pop = function(k) { this.g.stack.pop(k); };
 `
 
-  res += `\n(new F({}, function() {\n  this.g.variables = ${serialize(builtins)};\n`
+  res += `\n(new F(undefined, [], function() {\n  this.g.variables = ${serialize(builtins)};\n`
   res = compile('  ', res, {
     body: [
       [
@@ -51,11 +51,11 @@ F.prototype.pop = function(k) { this.g.stack.pop(k); };
 }
 
 function compile(indent, res, fn, G, path) {
-  let origin = G, originString = 'this.g'
-
+  let origin = G
+  
   function dfnVar(name, path) {
-    evalPath(path).variables[name] = "EXISTS OMG"
-    res += indent + `${parsePath(['G', ...path, 'variables', name])} = undefined;\n`
+    evalPath(path).variables[name] = true
+    res += indent + `${parsePath(['this.g', ...path, 'variables', name])} = undefined;\n`
   }
 
   ////////////////////////////////////////////////////////////////////////
@@ -76,17 +76,20 @@ function compile(indent, res, fn, G, path) {
       if(where === null) {
         throw 'Variable ' + v.name + ' is undefined'
       } else {
-        console.log(where)
+        console.log('FOUND VARIABLE:', where.path, G)
+        var pops = 'pop(),'.repeat(evalPath(G, (new Array(where.recursions).fill('parentObj')).concat(where.path)).length)
+        pops = '[' + pops.slice(0, pops.length - 1) + ']'
+        res += indent + `${ parsePath(['this.g', ...(where.path)]) }(${pops});\n`
       }
     }
 
     if(type === b.NAMES.FUNCTION) {
-      res += indent + 'this.+(new F(' + parsePath([originString, ...path]) + ', function() {\n'
+      res += indent + 'this.+(new F(' + parsePath(['this.g', ...path]) + ', ' + JSON.stringify(path) + ', function() {\n'
       res = compile(indent + '  ', res, v, {
-        parent: G,
+        parentPath: [...path], parentObj: G,
         variables: {},
         stack: []
-      }, path)
+      }, [], G)
       res += indent + '}));\n'
     }
   })
@@ -98,16 +101,17 @@ function compile(indent, res, fn, G, path) {
 // A path is an array of strings describing how to navigate from the variable `ctx` to get somewhere. For example, `ctx.variables.a.stack[0]` as a path would be `['variables', 'a', 'stack', '0']`.
 // find takes one of these as it's second argument and returns one, parsePath returns a string representation of a path and evalPath evaluates a path and returns the value after travelling that path.
 
-function find(what, origin, path) {
+function find(what, origin, path, recursions) {
+  // console.log('Checking path ', path, ' from origin ', origin, ' for variable ', what, '.')
+    
   let evaledPath = evalPath(origin, path)
-  console.log(path)
-
-  if(!evaledPath.parent)
-    return null
+  
   if(Object.keys(evaledPath.variables).indexOf(what) > -1)
-    return [...path, 'variables', what]
-
-  return find(what, evaledPath.parent)
+    return { path: [...path, 'variables', what], recursions }
+  if(!evaledPath.parentObj)
+    return { path: null, recursions }
+  
+  return find(what, evaledPath.parentObj, evaledPath.parentPath, (recursions || 0) + 1)
 }
 
 function parsePath(path) {
@@ -121,8 +125,6 @@ function parsePath(path) {
 
 function evalPath(origin, path) {
   path = path || []
-
-  console.log('origin:', origin)
 
   let res = origin
   path.forEach(v => {
