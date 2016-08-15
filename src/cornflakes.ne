@@ -19,13 +19,13 @@ const builtins = require('./grammarbuiltins')
 @builtin "string.ne"
 @builtin "whitespace.ne"
 
-main    -> _ program:* _    {% d => new builtins.CFFunction(removeNull(d[1]||[]), 0, null) %}
+main    -> _ program:* _    {% d => new builtins.CFFunction(d[1] || [], 0, null) %}
 program -> comment          {% d => d[0] %}
          | string           {% d => d[0] %}
          | num              {% d => d[0] %}
          | variable         {% d => d[0] %}
          | "{" main "}" argsDefinition:? {% d => {
-           let body = d[1]
+           let body = d[1].body
 
            if(!d[3]) d[3] = [0, null]
 
