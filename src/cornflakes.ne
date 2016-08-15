@@ -22,10 +22,21 @@ const builtins = require('./builtins')
 main    -> _ program:* _    {% d => removeNull(d[1]||[]).map(k => k[0]) %}
 program -> comment
          | string
+         | num
          | variable
-         | "{" program "}" (argsDefinition | num:?) {% d => console.log(d) /*[builtins.NAMES.FUNCTION, new builtins.CFFunction()]*/ %}
+         | "{" main "}" argsDefinition:? {% d => {
+           let body = d[1]
+           console.log('Func body is', d[1])
 
-argsDefinition -> num               {% d => [num] %}
+           if(!d[3]) d[3] = [0, null]
+
+           let args = d[3][0]
+           let argnames = d[3][1]
+
+           return [builtins.NAMES.FUNCTION, new builtins.CFFunction(body, args, argnames)]
+         } %}
+
+argsDefinition -> num               {% d => [num, null] %}
                 | "(" varchar:+ ")" {% d => [d[1].length, d[1]] %}
 
 string   -> dqstring        {% d => [builtins.NAMES.STRING, new builtins.CFString(d[0].split('').map(char => new builtins.CFNumber(char.charCodeAt(0).toString('16'))))] %}

@@ -1,14 +1,21 @@
 const fs = require('fs')
+const builtins = require('./builtins')
 
 //////////////////////////////////////////////////////////////////////////
 
 module.exports = function compile(tree) {
   let res = ''
-  let stack = []
 
   ////////////////////////////////////////////////////////////////////////
 
   console.dir(tree, { depth: null })
+
+  let globalCtx = {
+    p: null,
+    //o: new CFFunction(),
+  }
+
+  let ctx = globalCtx
 
   /*
   tree.forEach(line => {
