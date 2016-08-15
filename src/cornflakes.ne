@@ -12,14 +12,14 @@ function removeNull(obj) {
   return obj
 }
 
-const builtins = require('./builtins')
+const builtins = require('./grammarbuiltins')
 
 %}
 
 @builtin "string.ne"
 @builtin "whitespace.ne"
 
-main    -> _ program:* _    {% d => new builtins.CFFunction(d[1]||[], 0, null) %}
+main    -> _ program:* _    {% d => new builtins.CFFunction(removeNull(d[1]||[]), 0, null) %}
 program -> comment          {% d => d[0] %}
          | string           {% d => d[0] %}
          | num              {% d => d[0] %}
@@ -45,7 +45,7 @@ varchar  -> [a-z]
 
 num      -> longnum           {% d => [builtins.NAMES.NUMBER, new builtins.CFNumber(d[0])] %}
           | shortnum          {% d => [builtins.NAMES.NUMBER, new builtins.CFNumber(d[0].join(''))] %}
-longnum  -> [^A-Z0-9#.] [A-Z0-9]
+longnum  -> [^A-Z0-9#."] [A-Z0-9]
 shortnum -> "#" [A-Z0-9]:+ {% d => d[1] %}
 
 comment  -> "--" .:*        {% d => null %}

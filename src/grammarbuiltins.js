@@ -32,7 +32,6 @@ builtins.CFNumber = class CFNumber {
   constructor(value) {
     this.type = builtins.NAMES.NUMBER
 
-    //console.log(value)
     this.setValue(value)
   }
 
