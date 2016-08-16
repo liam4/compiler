@@ -4,6 +4,7 @@ module.exports = {
   // every builtin is passed two extra args before what they've really been passed: their context (parent, path, stack, vars) and whether or not the user is using Node.
 
   // input/output ////////////////////////////////////////////////////////
+  
   i: function input(ctx, isNode, str) {
     return isNode ?
       builtinlocals.promptSync(str).map(function(char) {
