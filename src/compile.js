@@ -23,6 +23,9 @@ module.exports = function(main) {
 
   res += `
 try {
+  var isNode = typeof module === 'object' && typeof module.exports === 'object';
+  var root = isNode ? global : window;
+
   var F = function(p, fn) {
     this.g = {
       parent: p,
@@ -35,7 +38,7 @@ try {
 
   F.prototype.push = function(k) { this.g.stack.push(k); };
   F.prototype.pop = function(k) { return this.g.stack.pop(k); };
-  F.prototype.call = function(ctx, isNode, args) {
+  F.prototype.call = function(ctx, args) {
     this.g.parent = ctx;
     this.g.stack  = [];
 
@@ -47,9 +50,6 @@ try {
     if(ctx && res)
       ctx.stack.push(res);
   }
-
-  var isNode = typeof module === 'object' && typeof module.exports === 'object';
-  var root = isNode ? global : window;
 
   var builtinlocals = {}
   if(isNode) {
@@ -91,13 +91,13 @@ try {
   // TODO when we implement user-defined functions: check to see that the last stack item isn't a function
   var oPath = improveFindReturn(find('o', ctx, []))
   res += `
-    this.pop().call(this.g, isNode, []);
+    this.pop().call(this.g, []);
 
     if(!(lastCommand == ${ parsePath(['this.g', ...oPath]) } || this.g.stack[this.g.stack.length - 1] instanceof F )) {
       ${ compileCallToPath(oPath, ctx) }
     }\n`
 
-  res += `  }).call(undefined, isNode, []);
+  res += `  }).call(undefined, []);
 } catch(e) {
   if(e !== 'terminate') {
     throw e;
@@ -173,7 +173,7 @@ function compileCallToPath(path, ctx) {
   let pops = 'this.pop(),'.repeat(fn.length - 2)
   pops = '[' + pops.slice(0, pops.length - 1) + ']'
 
-  return `${ parsePath(['this.g', ...path]) }.call(this.g, isNode, ${pops}); lastCommand = ${ parsePath(['this.g', ...path]) };`
+  return `${ parsePath(['this.g', ...path]) }.call(this.g, ${pops}); lastCommand = ${ parsePath(['this.g', ...path]) };`
 }
 function compileCallToVar(v, ctx) {
   let where = find(v, ctx, ctx.path)

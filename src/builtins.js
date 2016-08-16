@@ -24,7 +24,12 @@ module.exports = {
       res += String.fromCharCode(parseInt(str[i], 16));
     }
 
-    console.log(res);
+    if(isNode) process.stdout.write(res);
+    else {
+      var span = document.createElement('span');
+      span.innerText = res;
+      window.document.body.appendChild(span);
+    }
   },
 
   // Logic ///////////////////////////////////////////////////////////////
@@ -194,6 +199,6 @@ module.exports = {
   },
 
   N: function newline(ctx, isNode) {
-    return [10];
+    return ['A'];
   }
 }
