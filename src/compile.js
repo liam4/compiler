@@ -43,7 +43,7 @@ F.prototype.call = function(ctx, isNode, args) {
   }
   var res = this.fn.apply(this, callWith);
   if(ctx && res)
-    ctx.g.stack.push(res);
+    ctx.stack.push(res);
 }
 
 var isNode = typeof module === 'object' && typeof module.exports === 'object';
@@ -87,7 +87,7 @@ new F(undefined, function() {
   // TODO when we implement user-defined functions: check to see that the last stack item isn't a function
   var oPath = improveFindReturn(find('o', ctx, []))
   res += `
-  this.pop().call(this, isNode, []);
+  this.pop().call(this.g, isNode, []);
   
   if(!(lastCommand == ${ parsePath(['this.g', ...oPath]) } || this.g.stack[this.g.stack.length - 1] instanceof F )) {
     ${ compileCallToPath(oPath, ctx) }
@@ -157,7 +157,7 @@ function compileCallToPath(path, ctx) {
   let pops = 'this.pop(),'.repeat(fn.length - 2)
   pops = '[' + pops.slice(0, pops.length - 1) + ']'
 
-  return `${ parsePath(['this.g', ...path]) }.call(this, isNode, ${pops}); lastCommand = ${ parsePath(['this.g', ...path]) };`
+  return `${ parsePath(['this.g', ...path]) }.call(this.g, isNode, ${pops}); lastCommand = ${ parsePath(['this.g', ...path]) };`
 }
 function compileCallToVar(v, ctx) {
   let where = find(v, ctx, ctx.path)
