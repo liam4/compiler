@@ -40,8 +40,10 @@ try {
     this.g.stack  = [];
 
     var callWith = [ctx, isNode];
-    for(var i = 0; i < (args || []).length; i++) {
-      callWith.push(args[i]);
+    console.log(args, this.fn.length - 2)
+    for(var i = 0; i < this.fn.length - 2; i++) {
+      console.log('LOOP');
+      callWith.push(args[i] || builtins['i'].call(this.g, isNode, []));
     }
     var res = this.fn.apply(this, callWith);
     if(ctx && res)
@@ -69,8 +71,10 @@ try {
 `
 
   res += `
-  new F(undefined, function() {
+  var builtins;
+  new F(undefined, function(isNode, _) {
     this.g.variables = ${serialize(builtins)};
+    builtins = ${serialize(builtins)};` + /* we want the value of this.g.variables but don't want to keep a reference to it, and this is the fastest way. */ `
     for(var builtin in this.g.variables) {
       if(!(this.g.variables.hasOwnProperty(builtin))) continue;
       this.g.variables[builtin] = new F({}, this.g.variables[builtin]);
@@ -95,7 +99,7 @@ try {
       ${ compileCallToPath(oPath, ctx) }
     }\n`
 
-  res += `  }).call();
+  res += `  }).call(undefined, isNode, []);
 } catch(e) {
   if(e !== 'terminate') {
     throw e;
@@ -167,7 +171,7 @@ function improveFindReturn(find) {
 }
 function compileCallToPath(path, ctx) {
   let fn = evalPath(ctx, path)
-
+  
   let pops = 'this.pop(),'.repeat(fn.length - 2)
   pops = '[' + pops.slice(0, pops.length - 1) + ']'
 
