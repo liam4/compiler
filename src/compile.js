@@ -89,7 +89,7 @@ try {
     ]
   }, ctx, [])
   // TODO when we implement user-defined functions: check to see that the last stack item isn't a function
-  var oPath = improveFindReturn(find('o', ctx, []))
+  var oPath = improveFindReturn(find('.', ctx, []))
   res += `
     this.pop().call(this.g, []);
 

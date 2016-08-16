@@ -5,7 +5,7 @@ module.exports = {
 
   // Input / Output //////////////////////////////////////////////////////
 
-  i: function input(ctx, isNode) {
+  ',': function input(ctx, isNode) {
     var str = isNode ? builtinlocals.prompt() : window.prompt();
     var res = []
 
@@ -16,7 +16,7 @@ module.exports = {
     return res
   },
 
-  o: function output(ctx, isNode, str) {
+  '.': function output(ctx, isNode, str) {
     var res = '';
     if(typeof str === 'string') str = [str];
 
@@ -129,7 +129,8 @@ module.exports = {
     return Math.sqrt(parseInt(n, 16)).toString(16)
   },
 
-  ////////////////////////////////////////////////////////////////////////
+  // Stack Manipulation //////////////////////////////////////////////////
+
   d: function duplicate(ctx, isNode, el) {
     ctx.stack.push(el)
     return el
@@ -140,9 +141,7 @@ module.exports = {
     return a
   },
 
-  p: function pop(ctx, isNode, a) {},
-
-  // manipulate entire stack /////////////////////////////////////////////
+  o: function pop(ctx, isNode, a) {},
 
   ">": function rotateRight(ctx, isNode) {
     ctx.stack = bultinlocals.rotateArray(ctx.stack, -1);
@@ -156,7 +155,7 @@ module.exports = {
     ctx.stack = ctx.stack.reverse();
   },
 
-  d: function clear(ctx, isNode) {
+  c: function clear(ctx, isNode) {
     ctx.stack = [];
   },
 
@@ -200,5 +199,15 @@ module.exports = {
 
   N: function newline(ctx, isNode) {
     return ['A'];
+  },
+
+  // Arrays //////////////////////////////////////////////////////////////
+
+  P: function pushArr(ctx, isNode, arr, el) {
+    arr.push(el);
+  },
+
+  O: function popArr(ctx, isNode, arr) {
+    return arr.pop();
   }
 }
