@@ -21,62 +21,64 @@ module.exports = function(main) {
 
   let res = ''
 
-  res += `var F = function(p, fn) {
-  this.g = {
-    parent: p,
-    variables: {},
-    stack: []
+  res += `
+try {
+  var F = function(p, fn) {
+    this.g = {
+      parent: p,
+      variables: {},
+      stack: []
+    };
+
+    this.fn = fn;
   };
-  
-  this.fn = fn;
-};
 
-F.prototype.push = function(k) { this.g.stack.push(k); };
-F.prototype.pop = function(k) { return this.g.stack.pop(k); };
-F.prototype.call = function(ctx, isNode, args) {
-  this.g.parent = ctx;
-  this.g.stack  = []
-  
-  var callWith = [ctx, isNode];
-  for(var i = 0; i < (args || []).length; i++) {
-    callWith.push(args[i]);
+  F.prototype.push = function(k) { this.g.stack.push(k); };
+  F.prototype.pop = function(k) { return this.g.stack.pop(k); };
+  F.prototype.call = function(ctx, isNode, args) {
+    this.g.parent = ctx;
+    this.g.stack  = [];
+
+    var callWith = [ctx, isNode];
+    for(var i = 0; i < (args || []).length; i++) {
+      callWith.push(args[i]);
+    }
+    var res = this.fn.apply(this, callWith);
+    if(ctx && res)
+      ctx.stack.push(res);
   }
-  var res = this.fn.apply(this, callWith);
-  if(ctx && res)
-    ctx.stack.push(res);
-}
 
-var isNode = typeof module === 'object' && typeof module.exports === 'object';
-var root = isNode ? global : window;
+  var isNode = typeof module === 'object' && typeof module.exports === 'object';
+  var root = isNode ? global : window;
 
-var builtinlocals = {}
-if(isNode) {
-  builtinlocals.promptSync = require('prompt-sync');
-}
-
-// rotateArray "stolen" from https://github.com/CMTegner/rotate-array/blob/master/index.js
-builtinlocals.rotateArray = function(array, num) {
-  num = (num || 0) % array.length;
-  if (num < 0) {
-    num += array.length;
+  var builtinlocals = {}
+  if(isNode) {
+    builtinlocals.promptSync = require('prompt-sync');
   }
-  var removed = array.splice(0, num);
-  array.push.apply(array, removed);
-  return array;
-};
+
+  // rotateArray "stolen" from https://github.com/CMTegner/rotate-array/blob/master/index.js
+  builtinlocals.rotateArray = function(array, num) {
+    num = (num || 0) % array.length;
+    if (num < 0) {
+      num += array.length;
+    }
+    var removed = array.splice(0, num);
+    array.push.apply(array, removed);
+    return array;
+  };
 `
 
   res += `
-new F(undefined, function() {
-  this.g.variables = ${serialize(builtins)};
-  for(var builtin in this.g.variables) {
-    if(!(this.g.variables.hasOwnProperty(builtin))) continue;
-    this.g.variables[builtin] = new F({}, this.g.variables[builtin]);
-  }
-  var lastCommand = null;
+  new F(undefined, function() {
+    this.g.variables = ${serialize(builtins)};
+    for(var builtin in this.g.variables) {
+      if(!(this.g.variables.hasOwnProperty(builtin))) continue;
+      this.g.variables[builtin] = new F({}, this.g.variables[builtin]);
+    }
+    var lastCommand = null;
 `
-    
-  res = compile('  ', res, {
+
+  res = compile('    ', res, {
     body: [
       [
         b.NAMES.FUNCTION,
@@ -87,18 +89,24 @@ new F(undefined, function() {
   // TODO when we implement user-defined functions: check to see that the last stack item isn't a function
   var oPath = improveFindReturn(find('o', ctx, []))
   res += `
-  this.pop().call(this.g, isNode, []);
-  
-  if(!(lastCommand == ${ parsePath(['this.g', ...oPath]) } || this.g.stack[this.g.stack.length - 1] instanceof F )) {
-    ${ compileCallToPath(oPath, ctx) }
-  }\n`
-  res += `}).call();`
+    this.pop().call(this.g, isNode, []);
+
+    if(!(lastCommand == ${ parsePath(['this.g', ...oPath]) } || this.g.stack[this.g.stack.length - 1] instanceof F )) {
+      ${ compileCallToPath(oPath, ctx) }
+    }\n`
+
+  res += `  }).call();
+} catch(e) {
+  if(e !== 'terminate') {
+    throw e;
+  }
+}`
 
   return res
 }
 
 function compile(indent, res, fn, ctx) {
-  
+
   function dfnVar(name, path) {
     evalPath(path).variables[name] = true
     res += indent + `${parsePath(['this.g', ...path, 'variables', name])} = undefined;\n`
@@ -124,7 +132,7 @@ function compile(indent, res, fn, ctx) {
         variables: {},
         stack: []
       }, [], ctx)
-      
+
       res += indent + 'return this.pop();'
       res += indent + '}));\n'
     }
@@ -153,7 +161,7 @@ function improveFindReturn(find) {
 }
 function compileCallToPath(path, ctx) {
   let fn = evalPath(ctx, path)
-  
+
   let pops = 'this.pop(),'.repeat(fn.length - 2)
   pops = '[' + pops.slice(0, pops.length - 1) + ']'
 

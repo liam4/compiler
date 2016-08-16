@@ -3,8 +3,8 @@ module.exports = {
   // every function, builtins and CF functions, pushes their returned value to the parent's stack. for builtins, this is the value their JS function returns, and for CF functions the returned value is the last item in their stack after execution.
   // every builtin is passed two extra args before what they've really been passed: their context (parent, path, stack, vars) and whether or not the user is using Node.
 
-  // input/output ////////////////////////////////////////////////////////
-  
+  // Input / Output //////////////////////////////////////////////////////
+
   i: function input(ctx, isNode, str) {
     return isNode ?
       builtinlocals.promptSync(str).map(function(char) {
@@ -21,6 +21,30 @@ module.exports = {
     }).join('');
 
     console.log(str);
+  },
+
+  // Logic ///////////////////////////////////////////////////////////////
+
+  x: function execute(ctx, isNode, fn) {
+    fn.call();
+  },
+
+  '?': function if_(ctx, isNode, bool, fn) {
+    if(bool !== '0') fn();
+  },
+
+  e: function if_else(ctx, isNode, bool, fn1, fn2) {
+    if(bool === '0') fn1();
+    else fn2();
+  },
+
+  '!': function not(ctx, isNode, bool) {
+    return bool === '0' ? '1' : '0';
+  },
+
+  q: function quit(ctx, isNode) {
+    if(isNode) process.exit();
+    else throw 'terminate';
   },
 
   ////////////////////////////////////////////////////////////////////////

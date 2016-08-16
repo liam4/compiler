@@ -12,9 +12,9 @@ const rl = readline.createInterface({
 })
 
 rl.on('line', line => {
-  let code = `/* compiled from \`${line}\` */\n\n` + compile(parse(line))
+  let code = `/* compiled from \`${line}\` */\n` + compile(parse(line))
   fs.writeFileSync('out.js', code, 'utf8')
-  
+
   let uglified = uglify(code, {
     fromString: true
   })
