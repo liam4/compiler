@@ -19,9 +19,8 @@ const builtins = require('./grammarbuiltins')
 @builtin "string.ne"
 @builtin "whitespace.ne"
 
-main    -> _ (program comment:? {% d => d[0] %}):* _    {% d => new builtins.CFFunction(d[1] || [], 0, null) %}
-program -> comment          {% d => d[0] %}
-         | string           {% d => d[0] %}
+main    -> _ program:* _    {% d => new builtins.CFFunction(d[1] || [], 0, null) %}
+program -> string           {% d => d[0] %}
          | num              {% d => d[0] %}
          | variable         {% d => d[0] %}
          | "{" main "}" (argsDefinition "|"):? {% d => {
@@ -41,12 +40,10 @@ string   -> dqstring        {% d => [builtins.NAMES.STRING, new builtins.CFStrin
           | "'" .           {% d => [builtins.NAMES.STRING, new builtins.CFString([new builtins.CFNumber(d[1].charCodeAt(0).toString('16'))])] %}
 
 variable -> varchar         {% d => [builtins.NAMES.VARIABLE, new builtins.CFVariable(d[0][0])] %}
-varchar  -> [^A-F0-9""''{}|]
+varchar  -> [^A-F0-9""''\-{}|]
 
 num      -> longnum           {% (d, l, r) => {
   if(isNaN(parseInt(d[0], 16))) return r
   else return [builtins.NAMES.NUMBER, new builtins.CFNumber(d[0])]
 } %}
 longnum -> [A-F0-9]:+ {% d => d[0] %}
-
-comment  -> "--" .:*        {% d => null %}
