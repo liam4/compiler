@@ -5,22 +5,26 @@ module.exports = {
 
   // Input / Output //////////////////////////////////////////////////////
 
-  i: function input(ctx, isNode, str) {
-    return isNode ?
-      builtinlocals.promptSync(str).map(function(char) {
-        return char.getCharCodeAt(0).toString(16);
-      }) :
-      window.prompt(str).map(function(char) {
-        return char.getCharCodeAt(0).toString(16);
-      });
+  i: function input(ctx, isNode) {
+    var str = isNode ? builtinlocals.promptSync('> ') : window.prompt();
+    var res = []
+
+    for(var i = 0; i < str.length; i++) {
+      res.push(str.charCodeAt(i).toString(16));
+    }
+
+    return res
   },
 
   o: function output(ctx, isNode, str) {
-    str = str.map(function(char) {
-      return String.fromCharCode(parseInt(char, 16));
-    }).join('');
+    var res = '';
+    if(typeof str === 'string') str = [str];
 
-    console.log(str);
+    for(var i = 0; i < str.length; i++) {
+      res += String.fromCharCode(parseInt(str[i], 16));
+    }
+
+    console.log(res);
   },
 
   // Logic ///////////////////////////////////////////////////////////////
@@ -47,8 +51,80 @@ module.exports = {
     else throw 'terminate';
   },
 
-  ////////////////////////////////////////////////////////////////////////
+  // Arithmetic //////////////////////////////////////////////////////////
 
+  "+": function add(ctx, isNode, a, b) {
+    return (parseInt(a, 16) + parseInt(b, 16)).toString(16);
+  },
+
+  "-": function subtract(ctx, isNode, a, b) {
+    return (parseInt(a, 16) - parseInt(b, 16)).toString(16);
+  },
+
+  "*": function multiply(ctx, isNode, a, b) {
+    return (parseInt(a, 16) * parseInt(b, 16)).toString(16);
+  },
+
+  "/": function divide(ctx, isNode, a, b) {
+    return (parseInt(a, 16) / parseInt(b, 16)).toString(16);
+  },
+
+  "%": function modulo(ctx, isNode, a, b) {
+    return (parseInt(a, 16) % parseInt(b, 16)).toString(16);
+  },
+
+  "|": function absolute(ctx, isNode, a) {
+    return Math.abs(parseInt(a, 16)).toString(16);
+  },
+
+  f: function factorial(ctx, isNode, n) {
+    var _n = parseInt(n, 16);
+    var _p = 1;
+
+    while(_n > 0) _p *= _n--;
+
+    return _p.toString(16)
+  },
+
+  p: function prime(ctx, isNode, n) {
+    var value = parseInt(n, 16)
+    if(value > 2) {
+      var i, q;
+      do {
+        i = 3;
+        value += 2;
+        q = Math.floor(Math.sqrt(value));
+        while (i <= q && value % i) {
+          i += 2;
+        }
+      } while (i <= q);
+
+      return value.toString(16);
+    }
+    return value === 2 ? '3' : '2';
+  },
+
+  '(': function increment(ctx, isNode, n) {
+    return (parseInt(n, 16) + 1).toString(16)
+  },
+
+  ')': function decrement(ctx, isNode, n) {
+    return (parseInt(n, 16) - 1).toString(16)
+  },
+
+  ';': function halve(ctx, isNode, n) {
+    return (parseInt(n, 16) / 2).toString(16)
+  },
+
+  ':': function double(ctx, isNode, n) {
+    return (parseInt(n, 16) * 2).toString(16)
+  },
+
+  t: function sqrt(ctx, isNode, n) {
+    return Math.sqrt(parseInt(n, 16)).toString(16)
+  },
+
+  ////////////////////////////////////////////////////////////////////////
   d: function duplicate(ctx, isNode, el) {
     ctx.stack.push(el)
     return el
@@ -77,23 +153,5 @@ module.exports = {
 
   d: function clear(ctx, isNode) {
     ctx.stack = []
-  },
-
-  // arithmetic //////////////////////////////////////////////////////////
-
-  "+": function add(ctx, isNode, a, b) {
-    return a + b
-  },
-
-  "-": function subtract(ctx, isNode, a, b) {
-    return a - b
-  },
-
-  "*": function multiply(ctx, isNode, a, b) {
-    return a * b
-  },
-
-  "/": function divide(ctx, isNode, a, b) {
-    return a / b
   },
 }

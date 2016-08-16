@@ -53,7 +53,7 @@ try {
 
   var builtinlocals = {}
   if(isNode) {
-    builtinlocals.promptSync = require('prompt-sync');
+    builtinlocals.promptSync = require('prompt-sync')();
   }
 
   // rotateArray "stolen" from https://github.com/CMTegner/rotate-array/blob/master/index.js
@@ -121,6 +121,12 @@ function compile(indent, res, fn, ctx) {
       res += ']);\n'
     }
 
+    if(type === b.NAMES.NUMBER) {
+      res += indent + 'this.push('
+      res += serialize(v.value)
+      res += ');\n'
+    }
+
     if(type === b.NAMES.VARIABLE) {
       res += indent + compileCallToVar(v.name, ctx) + '\n'
     }
@@ -133,7 +139,7 @@ function compile(indent, res, fn, ctx) {
         stack: []
       }, [], ctx)
 
-      res += indent + 'return this.pop();'
+      res += indent + '  return this.pop();\n'
       res += indent + '}));\n'
     }
   })
