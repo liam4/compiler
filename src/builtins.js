@@ -6,7 +6,7 @@ module.exports = {
   // Input / Output //////////////////////////////////////////////////////
 
   i: function input(ctx, isNode) {
-    var str = isNode ? builtinlocals.promptSync('> ') : window.prompt();
+    var str = isNode ? builtinlocals.prompt() : window.prompt();
     var res = []
 
     for(var i = 0; i < str.length; i++) {
@@ -135,23 +135,65 @@ module.exports = {
     return a
   },
 
-  p: function pop(ctx, isNode, a) { },
+  p: function pop(ctx, isNode, a) {},
 
   // manipulate entire stack /////////////////////////////////////////////
 
   ">": function rotateRight(ctx, isNode) {
-    ctx.stack = bultinlocals.rotateArray(ctx.stack, -1)
+    ctx.stack = bultinlocals.rotateArray(ctx.stack, -1);
   },
 
   "<": function rotateLeft(ctx, isNode) {
-    ctx.stack = builtinlocals.rotateArray(ctx.stack, 1)
+    ctx.stack = builtinlocals.rotateArray(ctx.stack, 1);
   },
 
   r: function reverse(ctx, isNode) {
-    ctx.stack = ctx.stack.reverse()
+    ctx.stack = ctx.stack.reverse();
   },
 
   d: function clear(ctx, isNode) {
-    ctx.stack = []
+    ctx.stack = [];
   },
+
+  // Strings /////////////////////////////////////////////////////////////
+
+  h: function helloworld(ctx, isNode) {
+    return ["48", "65", "6c", "6c", "6f", "2c", "20", "57", "6f", "72", "6c", "64", "21"];
+  },
+
+  a: function alphabet(ctx, isNode) {
+    return ["61", "62", "63", "64", "65", "66", "67", "68", "69", "6a", "6b", "6c", "6d", "6e", "6f", "70", "71", "72", "73", "74", "75", "76", "77", "78", "79", "7a"];
+  },
+
+  u: function uppercase(ctx, isNode, str) {
+    if(typeof str === 'string') str = [str]
+
+    for(var i = 0; i < str.length; i++) {
+      str[i] = String.fromCharCode(parseInt(str[i], 16)).toUpperCase().charCodeAt(0).toString(16);
+    }
+
+    return str
+  },
+
+  l: function lowercase(ctx, isNode, str) {
+    if(typeof str === 'string') str = [str]
+
+    for(var i = 0; i < str.length; i++) {
+      str[i] = String.fromCharCode(parseInt(str[i], 16)).toLowerCase().charCodeAt(0).toString(16);
+    }
+
+    return str
+  },
+
+  n: function number(ctx, isNode, str) {
+    for(var i = 0; i < str.length; i++) {
+      str[i] = str[i].charCodeAt(0).toString(16);
+    }
+
+    return str;
+  },
+
+  N: function newline(ctx, isNode) {
+    return [10];
+  }
 }

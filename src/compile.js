@@ -40,9 +40,7 @@ try {
     this.g.stack  = [];
 
     var callWith = [ctx, isNode];
-    console.log(args, this.fn.length - 2)
     for(var i = 0; i < this.fn.length - 2; i++) {
-      console.log('LOOP');
       callWith.push(args[i] || builtins['i'].call(this.g, isNode, []));
     }
     var res = this.fn.apply(this, callWith);
@@ -55,7 +53,7 @@ try {
 
   var builtinlocals = {}
   if(isNode) {
-    builtinlocals.promptSync = require('prompt-sync')();
+    builtinlocals.prompt = require('readline-sync').prompt;
   }
 
   // rotateArray "stolen" from https://github.com/CMTegner/rotate-array/blob/master/index.js
@@ -171,7 +169,7 @@ function improveFindReturn(find) {
 }
 function compileCallToPath(path, ctx) {
   let fn = evalPath(ctx, path)
-  
+
   let pops = 'this.pop(),'.repeat(fn.length - 2)
   pops = '[' + pops.slice(0, pops.length - 1) + ']'
 
