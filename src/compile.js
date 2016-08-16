@@ -11,41 +11,71 @@ Object.values = obj => Object.keys(obj).map(k => obj[k])
 //////////////////////////////////////////////////////////////////////////
 
 module.exports = function(main) {
-  console.dir(main, { depth: null })
-
   // global context
   let ctx = {
-    parentObj: undefined, parentPath: [],
+    parent: undefined,
+    path: [],
     variables: builtins,
     stack: []
   }
 
   let res = ''
 
-  res += `var F = function(p, ppath, fn) {
+  res += `var F = function(p, fn) {
   this.g = {
-    parentPath: ppath, parentObj: p,
+    parent: p,
     variables: {},
     stack: []
   };
-
-  this.call = fn;
+  
+  this.fn = fn;
 };
 
 F.prototype.push = function(k) { this.g.stack.push(k); };
-F.prototype.pop = function(k) { this.g.stack.pop(k); };
-
-function call(fn, args, stack) {
-  var res = (stack === true ? fn : fn.call).apply(null, args);
-  var rep = stack === true ? args : stack;
+F.prototype.pop = function(k) { return this.g.stack.pop(k); };
+F.prototype.call = function(ctx, isNode, args) {
+  this.g.parent = ctx;
+  this.g.stack  = []
   
-  res.forEach(function(r) {
-    rep.push(r);
-  });
+  var callWith = [ctx, isNode];
+  for(var i = 0; i < (args || []).length; i++) {
+    callWith.push(args[i]);
+  }
+  var res = this.fn.apply(this, callWith);
+  if(ctx && res)
+    ctx.g.stack.push(res);
 }
+
+var isNode = typeof module === 'object' && typeof module.exports === 'object';
+var root = isNode ? global : window;
+
+var builtinlocals = {}
+if(isNode) {
+  builtinlocals.promptSync = require('prompt-sync');
+}
+
+// rotateArray "stolen" from https://github.com/CMTegner/rotate-array/blob/master/index.js
+builtinlocals.rotateArray = function(array, num) {
+  num = (num || 0) % array.length;
+  if (num < 0) {
+    num += array.length;
+  }
+  var removed = array.splice(0, num);
+  array.push.apply(array, removed);
+  return array;
+};
 `
 
-  res += `\nnew F(undefined, [], function() {\n  this.g.variables = ${serialize(builtins)};\n  G = this;\n`
+  res += `
+new F(undefined, function() {
+  this.g.variables = ${serialize(builtins)};
+  for(var builtin in this.g.variables) {
+    if(!(this.g.variables.hasOwnProperty(builtin))) continue;
+    this.g.variables[builtin] = new F({}, this.g.variables[builtin]);
+  }
+  var lastCommand = null;
+`
+    
   res = compile('  ', res, {
     body: [
       [
@@ -54,14 +84,21 @@ function call(fn, args, stack) {
       ]
     ]
   }, ctx, [])
+  // TODO when we implement user-defined functions: check to see that the last stack item isn't a function
+  var oPath = improveFindReturn(find('o', ctx, []))
+  res += `
+  this.pop().call(this, isNode, []);
+  
+  if(!(lastCommand == ${ parsePath(['this.g', ...oPath]) } || this.g.stack[this.g.stack.length - 1] instanceof F )) {
+    ${ compileCallToPath(oPath, ctx) }
+  }\n`
   res += `}).call();`
 
   return res
 }
 
-function compile(indent, res, fn, G, path) {
-  let origin = G
-
+function compile(indent, res, fn, ctx) {
+  
   function dfnVar(name, path) {
     evalPath(path).variables[name] = true
     res += indent + `${parsePath(['this.g', ...path, 'variables', name])} = undefined;\n`
@@ -77,34 +114,18 @@ function compile(indent, res, fn, G, path) {
     }
 
     if(type === b.NAMES.VARIABLE) {
-      let where = find(v.name, origin, path)
-
-      if(where === null) {
-        throw 'Variable ' + v.name + ' is undefined'
-      } else {
-        let realPath = (new Array(where.recursions).fill('parentObj')).concat(where.path)
-        let fn = evalPath(G, realPath)
-
-        let pops = 'pop(),'.repeat(fn.length)
-        pops = '[' + pops.slice(0, pops.length - 1) + ']'
-
-        if(builtins.includes(fn) && fn.length === 0) {
-          // it's a builtin that takes the entire stack :O
-          res += indent + `call(${ parsePath(['this.g', ...realPath]) }, this.g.stack, true);\n`
-        } else {
-          res += indent + `call(${ parsePath(['this.g', ...realPath]) }, ${pops}, this.g.stack);\n`
-        }
-      }
+      res += indent + compileCallToVar(v.name, ctx) + '\n'
     }
 
     if(type === b.NAMES.FUNCTION) {
-      res += indent + 'this.push(new F(' + parsePath(['this.g', ...path]) + ', ' + JSON.stringify(path) + ', function() {\n'
+      res += indent + 'this.push(new F(' + parsePath(['this.g', ...(ctx.path)]) + ', function() {\n'
       res = compile(indent + '  ', res, v, {
-        parentPath: [...path], parentObj: G,
+        parent: ctx,
         variables: {},
         stack: []
-      }, [], G)
-      res += indent + `  call(G.o, [this.pop()], this.g.stack);\n`
+      }, [], ctx)
+      
+      res += indent + 'return this.pop();'
       res += indent + '}));\n'
     }
   })
@@ -113,20 +134,39 @@ function compile(indent, res, fn, G, path) {
 }
 
 
-// A path is an array of strings describing how to navigate from the variable `ctx` to get somewhere. For example, `ctx.variables.a.stack[0]` as a path would be `['variables', 'a', 'stack', '0']`.
+// A path is an array of strings describing how to navigate from the variable `ctx` to get somewhere. For example, `ctx.variables.a.stack[0]` as a path would be `['variables', 'a', 'stack', 0]`.
 // find takes one of these as it's second argument and returns one, parsePath returns a string representation of a path and evalPath evaluates a path and returns the value after travelling that path.
 
 function find(what, origin, path, recursions) {
-  // console.log('Checking path ', path, ' from origin ', origin, ' for variable ', what, '.')
-
+  recursions = recursions || 0
   let evaledPath = evalPath(origin, path)
 
   if(Object.keys(evaledPath.variables).indexOf(what) > -1)
     return { path: [...path, 'variables', what], recursions }
-  if(!evaledPath.parentObj)
+  if(!evaledPath.parent)
     return { path: null, recursions }
 
-  return find(what, evaledPath.parentObj, evaledPath.parentPath, (recursions || 0) + 1)
+  return find(what, evaledPath.parent, evaledPath.parent.path, recursions + 1)
+}
+function improveFindReturn(find) {
+  return (new Array(find.recursions).fill('parent')).concat(find.path)
+}
+function compileCallToPath(path, ctx) {
+  let fn = evalPath(ctx, path)
+  
+  let pops = 'this.pop(),'.repeat(fn.length - 2)
+  pops = '[' + pops.slice(0, pops.length - 1) + ']'
+
+  return `${ parsePath(['this.g', ...path]) }.call(this, isNode, ${pops}); lastCommand = ${ parsePath(['this.g', ...path]) };`
+}
+function compileCallToVar(v, ctx) {
+  let where = find(v, ctx, ctx.path)
+
+  if(where === null) {
+    throw 'Variable ' + v + ' is undefined'
+  } else {
+    return compileCallToPath(improveFindReturn(where), ctx)
+  }
 }
 
 function parsePath(path) {

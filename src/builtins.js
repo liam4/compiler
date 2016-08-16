@@ -1,69 +1,79 @@
 module.exports = {
-  // every builtin `pop()`s the amount of arguments it has
-  // and every element of the array it returns is `push()`ed
-  // to the stack
-
-  // if a function takes exactly ZERO (...stack) then it will
-  // be passed the entire stack (!!!)
-
+  // every function, builtins and CF functions, pops the amount of arguments it has
+  // every function, builtins and CF functions, pushes their returned value to the parent's stack. for builtins, this is the value their JS function returns, and for CF functions the returned value is the last item in their stack after execution.
+  // every builtin is passed two extra args before what they've really been passed: their context (parent, path, stack, vars) and whether or not the user is using Node.
+  
   // input/output ////////////////////////////////////////////////////////
-
-  i: function input(str) {
-    return [require('prompt-sync')('? ').map(char => char.charCodeAt(0).toString(16))]
+  i: function input(ctx, isNode, str) {
+    return isNode ?
+      builtinlocals.promptSync(str).map(function(char) {
+        return char.getCharCodeAt(0).toString(16);
+      }) :
+      window.prompt(str).map(function(char) {
+        return char.getCharCodeAt(0).toString(16);
+      });
   },
 
-  o: function output(str) {
-    process.stdout.write(str)
-    return []
+  o: function output(ctx, isNode, str) {
+    for(var key in str) {
+      str[key] = String.fromCharCode(parseInt(str[key], 16));
+    }
+    str = str.join('');
+    
+    if(isNode) {
+      process.stdout.write(str);
+  } else {
+      console.log(str);
+    }
   },
 
   ////////////////////////////////////////////////////////////////////////
 
-  d: function duplicate(el) {
-    return [el, el]
+  d: function duplicate(ctx, isNode, el) {
+    ctx.stack.push(el)
+    return el
   },
 
-  s: function swap(a, b) {
-    return [b, a]
+  s: function swap(ctx, isNode, a, b) {
+    ctx.stack.push(b)
+    return a
   },
 
-  p: function pop(a) {
-    return []
-  },
+  p: function pop(ctx, isNode, a) { },
 
   // manipulate entire stack /////////////////////////////////////////////
 
-  ">": function rotateRight(...stack) {
-    return require('rotate-array')(stack, -1)
+  ">": function rotateRight(ctx, isNode) {
+    ctx.stack = bultinlocals.rotateArray(ctx.stack, -1)
   },
 
-  "<": function rotateLeft(...stack) {
-    return require('rotate-array')(stack, 1)
+  "<": function rotateLeft(ctx, isNode) {
+    ctx.stack = builtinlocals.rotateArray(ctx.stack, 1)
   },
 
-  r: function reverse(...stack) {
-    return stack.reverse()
+  r: function reverse(ctx, isNode) {
+    ctx.stack = ctx.stack.reverse()
   },
 
-  d: function deleteAll(...stack) {
-    return []
+  d: function clear(ctx, isNode) {
+    ctx.stack = []
   },
 
   // arithmetic //////////////////////////////////////////////////////////
 
-  "+": function add(a, b) {
-    return [a + b]
+  "+": function add(ctx, isNode, a, b) {
+    return a + b
   },
 
-  "-": function subtract(a, b) {
-    return [a - b]
+  "-": function subtract(ctx, isNode, a, b) {
+    return a - b
   },
 
-  "*": function multiply(a, b) {
-    return [a * b]
+  "*": function multiply(ctx, isNode, a, b) {
+    return a * b
   },
 
-  "/": function divide(a, b) {
-    return [a / b]
+  "/": function divide(ctx, isNode, a, b) {
+    return a / b
   },
 }
