@@ -209,5 +209,16 @@ module.exports = {
 
   O: function popArr(ctx, isNode, arr) {
     return arr.pop();
+  },
+
+  // Hacks ///////////////////////////////////////////////////////////////
+
+  S: function subprocess(ctx, isNode, arr) {
+    try {
+      require('./compile')(arr.pop());
+      return 0;
+    } catch(e) {
+      return 1;
+    }
   }
 }
